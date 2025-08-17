@@ -29,11 +29,29 @@ jobs:
         wget ${{ github.event.inputs.FILE_LINK }}
         ls
         echo "FILE_ID=$(ls)" >> $GITHUB_ENV
-    - name: Processing File
+    - name: Check file size
       run: |
         cd drive
-        rar a -v2000m ${{ env.FILE_ID }}.rar ${{ env.FILE_ID }}
-        rm ${{ env.FILE_ID }}
+        if [[ $(stat -c '%s' *.*) -gt 2147483648 ]]; then
+        echo "The File is larger than 2GB"
+        echo "FILE_SIZE=true" >> $GITHUB_ENV
+        else
+        echo "File is smaller than or equal to 2GB"
+        echo "FILE_SIZE=false" >> $GITHUB_ENV
+        fi
+    - name: Processing Big File
+      if: ${{ env.FILE_SIZE == 'true' }}
+      run: |
+        cd drive
+        mv *.* Part.*
+        rar a -v2000m Part.rar *
+        ls -la
+    - name: Processing Small File
+      if: ${{ env.FILE_SIZE == 'false' }}
+      run: |
+        cd drive
+        mv *.* archive.*
+        rar a archive.rar *
         ls -la
     - name: Set Build Date 
       run: |
@@ -43,7 +61,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          drive/*.*
+          drive/*.rar
         name: ${{ env.FILE_ID }} // ${{ env.BUILD_DATE }}
         tag_name: ${{ github.run_id }}
         body: |
