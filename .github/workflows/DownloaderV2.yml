@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       FILE_LINK:
-        description: 'Link of File'
+        description: 'Link of the File'
         required: true
-        default: 'https://dlcdnets.asus.com/pub/ASUS/mb/14Utilities/Armoury_Crate_Full_Installation_Package.zip'
+        default: 'https://deepcool.io/downloads/DeepCool-1.2.14-setup.exe'
 
 jobs:
   build:
