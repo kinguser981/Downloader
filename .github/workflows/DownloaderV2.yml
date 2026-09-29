@@ -1,0 +1,62 @@
+name: File-to-link V2
+
+on:
+  workflow_dispatch:
+    inputs:
+      FILE_LINK:
+        description: 'Link of File'
+        required: true
+        default: 'https://dlcdnets.asus.com/pub/ASUS/mb/14Utilities/Armoury_Crate_Full_Installation_Package.zip'
+
+jobs:
+  build:
+    name: File downloader by ${{ github.actor }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Downloading file from Oreginal website
+      run: |
+        mkdir -p drive && cd drive
+        # Try curl with more browser-like headers and follow redirects
+        curl -L -O -J \
+        -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+        "${{ github.event.inputs.FILE_LINK }}"
+        ls
+        echo "FILE_ID=$(ls)" >> $GITHUB_ENV
+          
+    - name: Check file size
+      run: |
+        cd drive
+        if [[ $(stat -c '%s' *.*) -gt 2147483648 ]]; then
+        echo "The File is larger than 2GB"
+        echo "FILE_SIZE=true" >> $GITHUB_ENV
+        else
+        echo "File is smaller than or equal to 2GB"
+        echo "FILE_SIZE=false" >> $GITHUB_ENV
+        fi
+    - name: Processing Big File
+      if: ${{ env.FILE_SIZE == 'true' }}
+      run: |
+        sudo apt install rar
+        cd drive
+        mv *.* File.*
+        rar a -v2000m Archive.rar *
+        ls -la
+        
+    - name: Set Build Date 
+      run: |
+        echo "BUILD_DATE=$(date +%Y%m%d)" >> $GITHUB_ENV
+        
+    - name: Upload to Github
+      uses: softprops/action-gh-release@v1
+      continue-on-error: true
+      with:
+        files: |
+          drive/*.*
+        name: ${{ env.FILE_ID }} // ${{ env.BUILD_DATE }}
+        tag_name: ${{ github.run_id }}
+        body: |
